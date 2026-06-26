@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Banco de Aplicaciones</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+    input, select, textarea, button { font-family: inherit; }
+    .inp { background: #0d1020; border: 1px solid #2a3144; border-radius: 9px; color: #e2e8f0; padding: 9px 12px; font-size: 13px; outline: none; width: 100%; }
+    .inp:focus { border-color: #6366f1; }
+    textarea.inp { resize: vertical; }
+
+    /* Header */
+    #header { border-bottom: 1px solid #1e2433; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; background: #0d1020; position: sticky; top: 0; z-index: 10; }
+    #header-left { display: flex; align-items: center; gap: 10px; }
+    #logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg,#6366f1,#8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+    #app-title { font-weight: 700; font-size: 14px; }
+    #app-count { font-size: 11px; color: #64748b; }
+    #header-right { display: flex; gap: 7px; }
+    .btn-refresh { background: #1e2433; border: none; cursor: pointer; color: #94a3b8; border-radius: 9px; padding: 7px; display: flex; align-items: center; }
+    .btn-nueva { display: flex; align-items: center; gap: 4px; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; border: none; border-radius: 9px; padding: 7px 13px; font-weight: 600; font-size: 13px; cursor: pointer; }
+
+    /* Search */
+    #search-bar { padding: 12px 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .search-wrap { flex: 1; min-width: 160px; position: relative; }
+    .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #475569; }
+    .search-wrap input { padding-left: 32px; }
+    #filters { display: flex; gap: 5px; flex-wrap: wrap; }
+    .filter-btn { padding: 5px 11px; border-radius: 20px; border: none; cursor: pointer; font-size: 11px; font-weight: 600; background: #1a1f2e; color: #94a3b8; }
+    .filter-btn.active { background: #6366f1; color: #fff; }
+
+    /* List */
+    #list { padding: 0 18px 32px; }
+    .empty { text-align: center; padding: 60px 20px; color: #475569; }
+    .empty .icon { font-size: 38px; margin-bottom: 10px; }
+    .empty .title { font-weight: 600; margin-bottom: 5px; }
+    .empty .sub { font-size: 13px; }
+    #loading { text-align: center; padding: 60px; color: #475569; }
+
+    /* App card */
+    .app-card { background: #131828; border: 1px solid #1e2433; border-radius: 14px; overflow: hidden; margin-bottom: 10px; }
+    .app-header { display: flex; align-items: center; gap: 12px; padding: 13px 15px; cursor: pointer; }
+    .app-favicon { width: 38px; height: 38px; border-radius: 10px; background: #1e2433; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .app-favicon img { width: 22px; height: 22px; }
+    .app-info { flex: 1; min-width: 0; }
+    .app-name-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .app-name { font-weight: 700; font-size: 14px; }
+    .cat-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+    .cred-count { font-size: 10px; color: #475569; }
+    .app-domain { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #6366f1; text-decoration: none; }
+    .app-actions { display: flex; gap: 5px; }
+    .btn-icon { background: #1e2433; border: none; cursor: pointer; color: #94a3b8; border-radius: 7px; padding: 6px; display: flex; align-items: center; }
+    .btn-del-confirm { background: #7f1d1d; border: none; cursor: pointer; color: #fca5a5; border-radius: 7px; padding: 6px 9px; font-size: 11px; font-weight: 700; }
+    .chevron { color: #475569; flex-shrink: 0; transition: transform 0.2s; }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* Credentials panel */
+    .creds-panel { border-top: 1px solid #1e2433; padding: 12px 15px 14px; display: none; }
+    .creds-panel.open { display: block; }
+    .app-notes { font-size: 12px; color: #64748b; font-style: italic; margin-bottom: 10px; }
+    .no-creds { font-size: 12px; color: #475569; margin-bottom: 10px; }
+    .cred-card { background: #0d1020; border-radius: 10px; padding: 10px 13px; border: 1px solid #1e2433; margin-bottom: 8px; }
+    .cred-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .cred-num { font-size: 10px; background: #1e2433; color: #94a3b8; border-radius: 5px; padding: 2px 7px; font-weight: 700; }
+    .cred-label { font-size: 12px; font-weight: 600; color: #a5b4fc; margin-left: 6px; }
+    .cred-actions { display: flex; gap: 4px; }
+    .btn-icon-sm { background: #1a1f2e; border: none; cursor: pointer; color: #94a3b8; border-radius: 6px; padding: 4px; display: flex; align-items: center; }
+    .btn-del-sm { background: #7f1d1d; border: none; cursor: pointer; color: #fca5a5; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 700; }
+    .cred-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .cred-row:last-child { margin-bottom: 0; }
+    .cred-lbl { font-size: 10px; color: #475569; font-weight: 700; min-width: 58px; display: flex; align-items: center; gap: 3px; }
+    .cred-val { flex: 1; font-size: 12px; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cred-val.hidden { letter-spacing: 2px; }
+    .btn-plain { background: none; border: none; cursor: pointer; color: #475569; padding: 2px; display: flex; align-items: center; }
+    .btn-plain.copied { color: #10b981; }
+    .btn-add-cred { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 1px dashed #2a3144; border-radius: 9px; color: #6366f1; cursor: pointer; padding: 8px 14px; font-size: 12px; font-weight: 600; width: 100%; }
+
+    /* Error */
+    .error-bar { background: #7f1d1d; color: #fca5a5; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .btn-retry { background: none; border: none; color: #fca5a5; cursor: pointer; font-weight: 700; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+    .modal-overlay.hidden { display: none; }
+    .modal { background: #131828; border: 1px solid #2a3144; border-radius: 18px; width: 100%; max-width: 420px; padding: 22px; }
+    .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+    .modal p { font-size: 12px; color: #64748b; margin-bottom: 18px; }
+    .field { margin-bottom: 11px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; }
+    .modal-btns { display: flex; gap: 9px; margin-top: 18px; }
+    .btn-cancel { flex: 1; padding: 10px; border-radius: 9px; border: 1px solid #2a3144; background: transparent; color: #94a3b8; cursor: pointer; font-weight: 600; }
+    .btn-save { flex: 1; padding: 10px; border-radius: 9px; border: none; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; cursor: pointer; font-weight: 700; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <div id="header-left">
+    <div id="logo">🔐</div>
+    <div>
+      <div id="app-title">Banco de Aplicaciones</div>
+      <div id="app-count">0 apps · 0 credenciales</div>
+    </div>
+  </div>
+  <div id="header-right">
+    <button class="btn-refresh" onclick="loadApps()" title="Actualizar">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </button>
+    <button class="btn-nueva" onclick="openNewApp()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nueva
+    </button>
+  </div>
+</div>
+
+<!-- Search -->
+<div id="search-bar">
+  <div class="search-wrap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="inp" id="search" placeholder="Buscar app, usuario o nivel…" oninput="renderList()" />
+  </div>
+  <div id="filters"></div>
+</div>
+
+<!-- List -->
+<div id="list"><div id="loading">🔥 Conectando con Firebase…</div></div>
+
+<!-- Modal App -->
+<div class="modal-overlay hidden" id="modal-app" onclick="if(event.target===this)closeModal('modal-app')">
+  <div class="modal">
+    <h2 id="modal-app-title">Nueva aplicación</h2>
+    <div class="field"><label>NOMBRE *</label><input class="inp" id="f-name" placeholder="Gmail, Slack…" /></div>
+    <div class="field"><label>URL</label><input class="inp" id="f-url" placeholder="https://…" /></div>
+    <div class="field"><label>CATEGORÍA</label>
+      <select class="inp" id="f-cat">
+        <option>Trabajo</option><option>Personal</option><option>Finanzas</option>
+        <option>Redes Sociales</option><option>Entretenimiento</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="field"><label>NOTAS</label><textarea class="inp" id="f-notes" rows="2"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-app')">Cancelar</button>
+      <button class="btn-save" id="btn-save-app" onclick="saveApp()">Crear</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Credencial -->
+<div class="modal-overlay hidden" id="modal-cred" onclick="if(event.target===this)closeModal('modal-cred')">
+  <div class="modal">
+    <h2 id="modal-cred-title">Nueva credencial</h2>
+    <p>Usuario/contraseña para un nivel o persona específica.</p>
+    <div class="field"><label>ETIQUETA / NIVEL / ROL</label><input class="inp" id="c-label" placeholder="Administrador, Editor…" /></div>
+    <div class="field"><label>USUARIO / EMAIL</label><input class="inp" id="c-user" placeholder="usuario@correo.com" /></div>
+    <div class="field"><label>CONTRASEÑA</label><input class="inp" id="c-pass" type="text" placeholder="Escribe la contraseña" /></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-cred')">Cancelar</button>
+      <button class="btn-save" id="btn-save-cred" onclick="saveCred()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROJECT_ID = "mi-boveda-c9849";
+const API_KEY = "AIzaSyBZFs1Q0u6sMlsv1ZQYNgl9NdoRpt1_XIE";
+const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/banco-de-aplicaciones`;
+
+const CATEGORIES = ["Todas","Trabajo","Personal","Finanzas","Redes Sociales","Entretenimiento","Otro"];
+const CAT_COLOR = { "Trabajo":"#6366f1","Personal":"#10b981","Finanzas":"#f59e0b","Redes Sociales":"#ec4899","Entretenimiento":"#8b5cf6","Otro":"#64748b" };
+
+let apps = [], filterCat = "Todas", editAppId = null, editCredId = null, credAppId = null;
+let showPass = {}, deleteConfirm = {};
+
+// ── Firestore REST ─────────────────────────────────────────────────────
+const toFields = (obj) => {
+  const f = {};
+  for (const [k,v] of Object.entries(obj)) {
+    if (typeof v === "string") f[k] = { stringValue: v };
+    else if (typeof v === "number") f[k] = { integerValue: String(v) };
+    else if (Array.isArray(v)) f[k] = { arrayValue: { values: v.map(i => ({ mapValue: { fields: toFields(i) } })) } };
+  }
+  return f;
+};
+const fromFields = (fields) => {
+  if (!fields) return {};
+  const obj = {};
+  for (const [k,v] of Object.entries(fields)) {
+    if (v.stringValue !== undefined) obj[k] = v.stringValue;
+    else if (v.integerValue !== undefined) obj[k] = Number(v.integerValue);
+    else if (v.arrayValue) obj[k] = (v.arrayValue.values||[]).map(i => fromFields(i.mapValue?.fields||{}));
+  }
+  return obj;
+};
+
+async function loadApps() {
+  document.getElementById("list").innerHTML = '<div id="loading">🔥 Conectando con Firebase…</div>';
+  try {
+    const r = await fetch(`${BASE}?key=${API_KEY}`);
+    const data = await r.json();
+    apps = (data.documents||[]).map(d => ({ id: d.name.split("/").pop(), ...fromFields(d.fields) }));
+    apps.sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+    updateCount(); renderList();
+  } catch(e) {
+    document.getElementById("list").innerHTML = `<div class="error-bar">Error al conectar con Firebase.<button class="btn-retry" onclick="loadApps()">Reintentar</button></div>`;
+  }
+}
+
+async function fbSet(id, obj) {
+  const fields = toFields(obj);
+  const masks = Object.keys(fields).map(k => `updateMask.fieldPaths=${k}`).join("&");
+  await fetch(`${BASE}/${id}?key=${API_KEY}&${masks}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({fields}) });
+}
+async function fbCreate(id, obj) {
+  await fetch(`${BASE}?documentId=${id}&key=${API_KEY}`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({fields: toFields(obj)}) });
+}
+async function fbDelete(id) { await fetch(`${BASE}/${id}?key=${API_KEY}`, { method:"DELETE" }); }
+
+// ── Render ─────────────────────────────────────────────────────────────
+function getFavicon(url) { try { const u = new URL(url.startsWith("http")?url:"https://"+url); return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=32`; } catch { return null; } }
+function getDomain(url) { try { const u = new URL(url.startsWith("http")?url:"https://"+url); return u.hostname.replace("www.",""); } catch { return url; } }
+
+function updateCount() {
+  const total = apps.reduce((s,a)=>s+(a.credentials||[]).length,0);
+  document.getElementById("app-count").textContent = `${apps.length} apps · ${total} credenciales`;
+}
+
+function renderFilters() {
+  document.getElementById("filters").innerHTML = CATEGORIES.map(c =>
+    `<button class="filter-btn${filterCat===c?' active':''}" onclick="setFilter('${c}')">${c}</button>`
+  ).join("");
+}
+
+function setFilter(c) { filterCat=c; renderFilters(); renderList(); }
+
+function renderList() {
+  renderFilters();
+  const q = document.getElementById("search").value.toLowerCase();
+  const filtered = apps.filter(a => {
+    const mq = !q || a.name.toLowerCase().includes(q) || (a.url||"").toLowerCase().includes(q) || (a.credentials||[]).some(c=>(c.username||"").toLowerCase().includes(q)||(c.label||"").toLowerCase().includes(q));
+    return mq && (filterCat==="Todas" || a.category===filterCat);
+  });
+
+  if (!filtered.length) {
+    document.getElementById("list").innerHTML = `<div class="empty"><div class="icon">🔒</div><div class="title">${apps.length===0?"Tu bóveda está vacía":"Sin resultados"}</div><div class="sub">${apps.length===0?"Toca «Nueva» para agregar tu primera app":"Prueba con otra búsqueda"}</div></div>`;
+    return;
+  }
+
+  document.getElementById("list").innerHTML = filtered.map(app => {
+    const creds = app.credentials||[];
+    const catColor = CAT_COLOR[app.category]||"#64748b";
+    const favicon = getFavicon(app.url||"");
+    const domain = app.url ? getDomain(app.url) : null;
+    const isOpen = showPass[app.id+"_open"];
+
+    const credsHtml = creds.map((c,idx) => {
+      const pk = app.id+"-"+c.id;
+      const sp = showPass[pk];
+      const dc = deleteConfirm[pk];
+      return `<div class="cred-card">
+        <div class="cred-header">
+          <div style="display:flex;align-items:center">
+            <span class="cred-num">#${idx+1}</span>
+            <span class="cred-label">${c.label||"Sin etiqueta"}</span>
+          </div>
+          <div class="cred-actions">
+            <button class="btn-icon-sm" onclick="openEditCred('${app.id}','${c.id}')">${editSVG()}</button>
+            ${dc ? `<button class="btn-del-sm" onclick="deleteCred('${app.id}','${c.id}')">¿Sí?</button>`
+                 : `<button class="btn-icon-sm" onclick="confirmDel('${pk}')" onblur="clearDel('${pk}')">${trashSVG(13)}</button>`}
+          </div>
+        </div>
+        <div class="cred-row">
+          <span class="cred-lbl">${userSVG()} USUARIO</span>
+          <span class="cred-val">${c.username||"—"}</span>
+          ${c.username?`<button class="btn-plain" id="cp-u-${pk}" onclick="copyText('${c.username}','cp-u-${pk}')">${copySVG()}</button>`:""}
+        </div>
+        <div class="cred-row">
+          <span class="cred-lbl">🔑 CLAVE</span>
+          <span class="cred-val${sp?"":" hidden"}">${c.password?(sp?c.password:"••••••••"):"—"}</span>
+          ${c.password?`<div style="display:flex;gap:3px">
+            <button class="btn-plain" onclick="togglePass('${pk}')">${eyeSVG(sp)}</button>
+            <button class="btn-plain" id="cp-p-${pk}" onclick="copyText('${c.password}','cp-p-${pk}')">${copySVG()}</button>
+          </div>`:""}
+        </div>
+      </div>`;
+    }).join("");
+
+    const dc = deleteConfirm[app.id];
+    return `<div class="app-card">
+      <div class="app-header" onclick="toggleExpand('${app.id}')">
+        <div class="app-favicon">
+          ${favicon?`<img src="${favicon}" onerror="this.style.display='none'" />`:`<span style="font-size:17px">🌐</span>`}
+        </div>
+        <div class="app-info">
+          <div class="app-name-row">
+            <span class="app-name">${app.name}</span>
+            <span class="cat-badge" style="color:${catColor};background:${catColor}22">${app.category}</span>
+            <span class="cred-count">${creds.length} ${creds.length===1?"usuario":"usuarios"}</span>
+          </div>
+          ${domain?`<a class="app-domain" href="${app.url.startsWith("http")?app.url:"https://"+app.url}" target="_blank" onclick="event.stopPropagation()">${linkSVG()} ${domain}</a>`:""}
+        </div>
+        <div class="app-actions" onclick="event.stopPropagation()">
+          <button class="btn-icon" onclick="openEditApp('${app.id}')">${editSVG()}</button>
+          ${dc?`<button class="btn-del-confirm" onclick="deleteApp('${app.id}')">¿Sí?</button>`
+              :`<button class="btn-icon" onclick="confirmDel('${app.id}')" onblur="clearDel('${app.id}')">${trashSVG()}</button>`}
+        </div>
+        <svg class="chevron${isOpen?" open":""}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="creds-panel${isOpen?" open":""}">
+        ${app.notes?`<div class="app-notes">${app.notes}</div>`:""}
+        ${creds.length===0?`<div class="no-creds">Sin credenciales aún.</div>`:""}
+        ${credsHtml}
+        <button class="btn-add-cred" onclick="openNewCred('${app.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar usuario / contraseña
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── SVGs ───────────────────────────────────────────────────────────────
+const eyeSVG = (open) => open
+  ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+  : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+const copySVG = () => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
+const trashSVG = (s=15) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>`;
+const editSVG = () => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const linkSVG = () => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
+const userSVG = () => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+// ── Actions ────────────────────────────────────────────────────────────
+function toggleExpand(id) { showPass[id+"_open"] = !showPass[id+"_open"]; renderList(); }
+function togglePass(pk) { showPass[pk] = !showPass[pk]; renderList(); }
+function confirmDel(k) { deleteConfirm[k] = true; renderList(); }
+function clearDel(k) { setTimeout(()=>{ deleteConfirm[k]=false; renderList(); }, 200); }
+
+function copyText(text, btnId) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnId);
+    if (btn) { btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`; }
+    setTimeout(() => { if (btn) btn.innerHTML = copySVG(); }, 1500);
+  });
+}
+
+// App modal
+function openNewApp() { editAppId=null; document.getElementById("modal-app-title").textContent="Nueva aplicación"; document.getElementById("f-name").value=""; document.getElementById("f-url").value=""; document.getElementById("f-cat").value="Personal"; document.getElementById("f-notes").value=""; document.getElementById("btn-save-app").textContent="Crear"; document.getElementById("modal-app").classList.remove("hidden"); }
+function openEditApp(id) { const a=apps.find(x=>x.id===id); if(!a)return; editAppId=id; document.getElementById("modal-app-title").textContent="Editar aplicación"; document.getElementById("f-name").value=a.name||""; document.getElementById("f-url").value=a.url||""; document.getElementById("f-cat").value=a.category||"Personal"; document.getElementById("f-notes").value=a.notes||""; document.getElementById("btn-save-app").textContent="Guardar"; document.getElementById("modal-app").classList.remove("hidden"); }
+async function saveApp() {
+  const name = document.getElementById("f-name").value.trim(); if(!name)return;
+  const btn = document.getElementById("btn-save-app"); btn.disabled=true; btn.textContent="Guardando…";
+  const obj = { name, url: document.getElementById("f-url").value, category: document.getElementById("f-cat").value, notes: document.getElementById("f-notes").value };
+  try {
+    if (editAppId) { const a=apps.find(x=>x.id===editAppId); await fbSet(editAppId,{...a,...obj}); }
+    else { const id=Date.now().toString(); await fbCreate(id,{...obj,credentials:[],createdAt:Date.now()}); showPass[id+"_open"]=true; }
+    closeModal("modal-app"); await loadApps();
+  } catch(e){} btn.disabled=false;
+}
+
+// Cred modal
+function openNewCred(appId) { credAppId=appId; editCredId=null; document.getElementById("modal-cred-title").textContent="Nueva credencial"; document.getElementById("c-label").value=""; document.getElementById("c-user").value=""; document.getElementById("c-pass").value=""; document.getElementById("btn-save-cred").textContent="Agregar"; document.getElementById("modal-cred").classList.remove("hidden"); }
+function openEditCred(appId, credId) { credAppId=appId; editCredId=credId; const a=apps.find(x=>x.id===appId); const c=(a?.credentials||[]).find(x=>x.id===credId); if(!c)return; document.getElementById("modal-cred-title").textContent="Editar credencial"; document.getElementById("c-label").value=c.label||""; document.getElementById("c-user").value=c.username||""; document.getElementById("c-pass").value=c.password||""; document.getElementById("btn-save-cred").textContent="Guardar"; document.getElementById("modal-cred").classList.remove("hidden"); }
+async function saveCred() {
+  const btn=document.getElementById("btn-save-cred"); btn.disabled=true; btn.textContent="Guardando…";
+  const app=apps.find(a=>a.id===credAppId); if(!app)return;
+  let creds=[...(app.credentials||[])];
+  const newC={id:editCredId||Date.now().toString(),label:document.getElementById("c-label").value,username:document.getElementById("c-user").value,password:document.getElementById("c-pass").value};
+  if(editCredId) creds=creds.map(c=>c.id===editCredId?newC:c); else creds.push(newC);
+  try { await fbSet(credAppId,{...app,credentials:creds}); closeModal("modal-cred"); await loadApps(); } catch(e){}
+  btn.disabled=false;
+}
+
+async function deleteApp(id) { await fbDelete(id); deleteConfirm[id]=false; await loadApps(); }
+async function deleteCred(appId,credId) { const a=apps.find(x=>x.id===appId); if(!a)return; const creds=(a.credentials||[]).filter(c=>c.id!==credId); await fbSet(appId,{...a,credentials:creds}); deleteConfirm[appId+"-"+credId]=false; await loadApps(); }
+
+function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+
+// Init
+renderFilters();
+loadApps();
+</script>
+</body>
+</html>
